@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Students - Attendance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">📋 Attendance Tracker</h1>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/students">Students</a></li>
+                <li><a href="/attendance">Mark Attendance</a></li>
+                <li><a href="/reports">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container content">
+        <h2>Manage Students</h2>
+        
+        <div class="form-section">
+            <h3>Add New Student</h3>
+            <form id="studentForm">
+                <input type="text" id="rollNo" placeholder="Roll Number" required>
+                <input type="text" id="name" placeholder="Student Name" required>
+                <input type="email" id="email" placeholder="Email">
+                <input type="tel" id="phone" placeholder="Phone">
+                <button type="submit" class="btn btn-primary">Add Student</button>
+            </form>
+        </div>
+
+        <div class="table-section">
+            <h3>Student List</h3>
+            <table id="studentTable">
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Load students
+        function loadStudents() {
+            fetch('/api/students')
+                .then(response => response.json())
+                .then(students => {
+                    const tbody = document.querySelector('#studentTable tbody');
+                    tbody.innerHTML = '';
+                    students.forEach(student => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${student.roll_no}</td>
+                            <td>${student.name}</td>
+                            <td>${student.email || '-'}</td>
+                            <td>${student.phone || '-'}</td>
+                            <td>
+                                <button onclick="deleteStudent(${student.id})" class="btn btn-danger">Delete</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                });
+        }
+
+        // Add student
+        document.getElementById('studentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const student = {
+                roll_no: document.getElementById('rollNo').value,
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value
+            };
+
+            fetch('/api/students', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(student)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    document.getElementById('studentForm').reset();
+                    loadStudents();
+                    alert('Student added successfully!');
+                }
+            });
+        });
+
+        // Delete student
+        function deleteStudent(id) {
+            if (confirm('Are you sure?')) {
+                fetch(`/api/students/${id}`, { method: 'DELETE' })
+                    .then(() => loadStudents());
+            }
+        }
+
+        // Load students on page load
+        loadStudents();
+    </script>
+</body>
+</html>

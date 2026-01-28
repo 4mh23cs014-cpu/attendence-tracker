@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Reports - Attendance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">📋 Attendance Tracker</h1>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/students">Students</a></li>
+                <li><a href="/attendance">Mark Attendance</a></li>
+                <li><a href="/reports">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container content">
+        <h2>Attendance Reports</h2>
+        
+        <div class="form-section">
+            <label for="studentSelect">Select Student:</label>
+            <select id="studentSelect">
+                <option value="">-- Choose a Student --</option>
+            </select>
+        </div>
+
+        <div id="reportSection" style="display: none;">
+            <div class="report-summary">
+                <h3 id="studentName"></h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Total Days</h4>
+                        <p id="totalDays" class="stat-value">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Present</h4>
+                        <p id="presentDays" class="stat-value">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Absent</h4>
+                        <p id="absentDays" class="stat-value">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Leave</h4>
+                        <p id="leaveDays" class="stat-value">0</p>
+                    </div>
+                    <div class="stat-card highlight">
+                        <h4>Percentage</h4>
+                        <p id="percentage" class="stat-value">0%</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <h3>Attendance History</h3>
+                <table id="recordsTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const students = {{ students | tojson }};
+
+        // Populate student dropdown
+        const select = document.getElementById('studentSelect');
+        students.forEach(student => {
+            const option = document.createElement('option');
+            option.value = student.id;
+            option.textContent = `${student.roll_no} - ${student.name}`;
+            select.appendChild(option);
+        });
+
+        // Load student report
+        select.addEventListener('change', function() {
+            if (this.value) {
+                fetch(`/api/student-attendance/${this.value}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('studentName').textContent = data.student.name;
+                        document.getElementById('totalDays').textContent = data.total;
+                        document.getElementById('presentDays').textContent = data.present;
+                        document.getElementById('absentDays').textContent = data.absent;
+                        document.getElementById('leaveDays').textContent = data.leave;
+                        document.getElementById('percentage').textContent = data.percentage + '%';
+                        
+                        const tbody = document.querySelector('#recordsTable tbody');
+                        tbody.innerHTML = '';
+                        data.records.forEach(record => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${record.date}</td>
+                                <td><span class="status-badge status-${record.status}">${record.status}</span></td>
+                                <td>${record.remarks || '-'}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        
+                        document.getElementById('reportSection').style.display = 'block';
+                    });
+            } else {
+                document.getElementById('reportSection').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

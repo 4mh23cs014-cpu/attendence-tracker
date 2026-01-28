@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance - Attendance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">📋 Attendance Tracker</h1>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/students">Students</a></li>
+                <li><a href="/attendance">Mark Attendance</a></li>
+                <li><a href="/reports">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container content">
+        <h2>Mark Attendance</h2>
+        
+        <div class="form-section">
+            <label for="attendanceDate">Select Date:</label>
+            <input type="date" id="attendanceDate" value="{{ today }}">
+        </div>
+
+        <div class="table-section">
+            <h3>Students</h3>
+            <table id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+            <button onclick="saveAttendance()" class="btn btn-primary" style="margin-top: 20px;">Save Attendance</button>
+        </div>
+    </div>
+
+    <script>
+        const students = {{ students | tojson }};
+
+        function loadAttendance() {
+            const date = document.getElementById('attendanceDate').value;
+            fetch(`/api/attendance/${date}`)
+                .then(response => response.json())
+                .then(records => {
+                    const tbody = document.querySelector('#attendanceTable tbody');
+                    tbody.innerHTML = '';
+                    
+                    students.forEach(student => {
+                        const record = records.find(r => r.student_id === student.id);
+                        const status = record ? record.status : 'present';
+                        const remarks = record ? record.remarks : '';
+                        
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${student.roll_no}</td>
+                            <td>${student.name}</td>
+                            <td>
+                                <select class="status-select" data-student-id="${student.id}">
+                                    <option value="present" ${status === 'present' ? 'selected' : ''}>Present</option>
+                                    <option value="absent" ${status === 'absent' ? 'selected' : ''}>Absent</option>
+                                    <option value="leave" ${status === 'leave' ? 'selected' : ''}>Leave</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" class="remarks-input" data-student-id="${student.id}" value="${remarks}" placeholder="Remarks">
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                });
+        }
+
+        function saveAttendance() {
+            const date = document.getElementById('attendanceDate').value;
+            const statusSelects = document.querySelectorAll('.status-select');
+            
+            statusSelects.forEach(select => {
+                const studentId = select.getAttribute('data-student-id');
+                const status = select.value;
+                const remarks = document.querySelector(`[data-student-id="${studentId}"].remarks-input`).value;
+                
+                fetch('/api/attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        student_id: parseInt(studentId),
+                        date: date,
+                        status: status,
+                        remarks: remarks
+                    })
+                });
+            });
+            
+            alert('Attendance saved successfully!');
+        }
+
+        document.getElementById('attendanceDate').addEventListener('change', loadAttendance);
+        loadAttendance();
+    </script>
+</body>
+</html>
